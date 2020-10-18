@@ -1,0 +1,81 @@
+.nowrap {
+  white-space: nowrap;
+}
+
+#user-id {
+  color: silver;
+  font-size: xx-small;
+}
+
+.call-centers {
+  list-style: none;
+  margin: 1em;
+  padding-left: 0;
+}
+
+.checkbox {
+  vertical-align: middle;
+}
+
+label {
+  vertical-align: middle;
+}
+
+.membership {
+  color: green;
+  font-weight: bold;
+  vertical-align: middle;
+  visibility: hidden;
+}
+
+.membership.active {
+  visibility: visible;
+}
+
+.loading {
+  margin: 3em auto;
+}
+
+footer {
+  display: flex;
+  align-items: center;
+}
+
+#assign {
+  margin-right: 0.25em;
+}
+
+.star {
+  height: 17px;
+  margin-left: 0.5em;
+}
+
+.delta {
+  margin-left: 0.5em;
+}
+
+.links {
+  flex-grow: 1;
+  text-align: right;
+}
+
+.links a {
+  color: blue;
+  cursor: pointer;
+  margin-left: 0.25em;
+  text-decoration: underline;
+}
+
+.add {
+  color: green;
+}
+
+.remove {
+  color: Crimson;
+}
+
+.assigning {
+  display: inline-block;
+  flex-grow: 1;
+  margin-left: 0.5em;
+}

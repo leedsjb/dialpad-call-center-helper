@@ -1,0 +1,34 @@
+{
+    "name": "Biden – Dialpad",
+    "description": "Provides additinoal Dialpad behavior to the Biden for America national voter hotline team.",
+    "version": "1.5.1",
+    "manifest_version": 2,
+    "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+    "background": {
+        "scripts": [
+            "background.js"
+        ],
+        "persistent": true
+    },
+    "page_action": {
+        "default_popup": "popup.html",
+        "default_icon": {
+            "16": "images/dialpad-16.png",
+            "32": "images/dialpad-32.png",
+            "48": "images/dialpad-48.png",
+            "128": "images/dialpad-128.png"
+        }
+    },
+    "icons": {
+        "16": "images/dialpad-16.png",
+        "32": "images/dialpad-32.png",
+        "48": "images/dialpad-48.png",
+        "128": "images/dialpad-128.png"
+    },
+    "permissions": [
+        "declarativeContent",
+        "storage",
+        "webRequest",
+        "https://dialpad.com/"
+    ]
+}

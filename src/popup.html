@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="spinner.css" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header v-if="userData.isLoaded">
+        <h1 class="nowrap">{{ userData.display_name }}</h1>
+        <h3 class="nowrap">{{ userData.primary_email }}</h3>
+
+        <p>
+          Currently in
+          <strong>{{ userData.call_center_ids.length }}</strong> call centers:
+        </p>
+      </header>
+
+      <div v-if="callCenterDefs.length || Object.keys(shiftCallCenterDefsBySuffix).length">
+        <ul v-if="Object.keys(shiftCallCenterDefsBySuffix).length" class="call-centers">
+          <li v-for="ss in shiftSuffixes" v-bind:key="ss">
+            <input
+              type="checkbox"
+              class="checkbox"
+              v-bind:value="ss"
+              v-bind:id="ss"
+              v-bind:disabled="isAssigning"
+              v-model="checkedShiftSuffixes"
+            />
+            <span class="membership" v-bind:class="{ active: isShiftMember(ss) }"
+              >&check;</span
+            >
+            <label
+              v-bind:for="ss"
+              v-bind:style="{ fontWeight: isShiftMember(ss) ? 'bold' : 'normal' }"
+              >{{ displayNameForCallCenterName("All " + ss) }}</label
+            >
+          </li>
+        </ul>
+        <ul v-if="callCenterDefs.length" class="call-centers">
+          <li v-for="cc in callCenterDefs" v-bind:key="cc.id">
+            <input
+              type="checkbox"
+              class="checkbox"
+              v-bind:value="cc.id"
+              v-bind:id="cc.id"
+              v-bind:disabled="isAssigning"
+              v-model="checkedCallCenterIds"
+            />
+            <span class="membership" v-bind:class="{ active: isMember(cc) }"
+              >&check;</span
+            >
+            <label
+              v-bind:for="cc.id"
+              v-bind:style="{ fontWeight: isMember(cc) ? 'bold' : 'normal' }"
+              >{{ displayNameForCallCenter(cc) }}</label
+            >
+          </li>
+        </ul>
+
+        <footer>
+          <button
+            id="assign"
+            v-on:click="assign"
+            v-bind:disabled="isAssigning || isClean"
+          >
+            Assign
+          </button>
+
+          <img
+            src="images/star.png"
+            class="star"
+            v-if="hasAssigned && !toAdd.size && !toRemove.size"
+          />
+
+          <span v-if="toAdd.size" class="add delta">Add: {{ toAdd.size }}</span>
+          <span v-if="toRemove.size" class="remove delta"
+            >Remove: {{ toRemove.size }}</span
+          >
+
+          <div class="assigning" v-if="isAssigning">
+            <spinner v-bind:size="10" />
+          </div>
+          <div class="links" v-else>
+            <a role="button" v-on:click="checkAll">All</a>
+            <a role="button" v-on:click="checkNone">None</a>
+            <a role="button" v-on:click="checkReset">Reset</a>
+          </div>
+        </footer>
+      </div>
+
+      <div v-else class="loading">
+        <spinner v-bind:size="18" />
+      </div>
+
+      <p id="user-id" class="nowrap">{{ userId }}</p>
+    </div>
+
+    <script src="vue.min.js"></script>
+    <script src="spinner.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
