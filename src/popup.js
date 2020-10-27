@@ -110,8 +110,12 @@ async function refreshCallCenterDefs(_app) {
     currentCallCenterRun = 1;
 
     if (!_app.denylistedShiftPrefixes.includes(currentCallCenterPrefix)) {
-      while (currentCallCenterRun < _app.shiftSuffixes.length && (currentCallCenterRun + currentCallCenterIndex) < numCallCenters) {
-        if (_app.callCenterDefs[currentCallCenterIndex + currentCallCenterRun].display_name === currentCallCenterPrefix + " " + _app.shiftSuffixes[currentCallCenterRun]) {
+      while (currentCallCenterRun + currentCallCenterIndex < numCallCenters) {
+        // as of 10/26 we now have call centers named <State>, <State Letter>, and <State LetterNumber>
+        // <State LetterNumber> call centers are for election day so let's gobble them up but not surface them in the UI
+        let reMatch = _app.callCenterDefs[currentCallCenterIndex + currentCallCenterRun].display_name.match(new RegExp(currentCallCenterPrefix + " ([A-Z][0-9]*)"));
+
+        if (reMatch && reMatch.length > 1) {
           currentCallCenterRun++;
         } else {
           break;
@@ -122,10 +126,16 @@ async function refreshCallCenterDefs(_app) {
     if (currentCallCenterRun > 2) {
       let currentRunIndex = 0;
       for (currentRunIndex = 0; currentRunIndex < currentCallCenterRun; currentRunIndex++) {
-        if (!_app.shiftCallCenterDefsBySuffix[_app.shiftSuffixes[currentRunIndex]]) {
-          _app.shiftCallCenterDefsBySuffix[_app.shiftSuffixes[currentRunIndex]] = [];
+        let reMatch = _app.callCenterDefs[currentCallCenterIndex + currentRunIndex].display_name.match(new RegExp(currentCallCenterPrefix + "( ([A-Z][0-9]*))?"));
+        if (reMatch) {
+          let callCenterSuffix = "A"; // A shift call centers don't have a real suffix
+          if (reMatch.length > 2 && reMatch[2]) callCenterSuffix = reMatch[2];
+                    
+          if (!_app.shiftCallCenterDefsBySuffix[callCenterSuffix]) {
+            _app.shiftCallCenterDefsBySuffix[callCenterSuffix] = [];
+          }
+          _app.shiftCallCenterDefsBySuffix[callCenterSuffix].push(_app.callCenterDefs[currentCallCenterIndex + currentRunIndex]);
         }
-        _app.shiftCallCenterDefsBySuffix[_app.shiftSuffixes[currentRunIndex]].push(_app.callCenterDefs[currentCallCenterIndex + currentRunIndex]);
       }
 
       _app.callCenterDefs.splice(currentCallCenterIndex, currentCallCenterRun);
