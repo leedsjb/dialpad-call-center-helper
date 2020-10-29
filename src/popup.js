@@ -108,7 +108,12 @@ async function refreshCallCenterDefs(_app) {
   while (currentCallCenterIndex < numCallCenters) {
     currentCallCenterPrefix = _app.callCenterDefs[currentCallCenterIndex].display_name;
     currentCallCenterRun = 1;
-
+    
+    // as of 10/29, the election day call centers are of the form "ED " + <State> + " <Letter><Number>"
+    // in this case, use "ED " + <State> as the prefix to match a run against
+    let prefixMatch = currentCallCenterPrefix.match(new RegExp("(ED .+) ([A-Z][0-9]*)"));
+    if (prefixMatch && prefixMatch.length > 1) currentCallCenterPrefix = prefixMatch[1];
+    
     if (!_app.denylistedShiftPrefixes.includes(currentCallCenterPrefix)) {
       while (currentCallCenterRun + currentCallCenterIndex < numCallCenters) {
         // as of 10/26 we now have call centers named <State>, <State Letter>, and <State LetterNumber>
@@ -169,8 +174,8 @@ const app = new Vue({
     headers: [],
     callCenterDefs: [],
     checkedCallCenterIds: [],
-    shiftSuffixes: ["A", "B", "C", "D", "E", "F"],
-    denylistedShiftPrefixes: ["National Spanish"],
+    shiftSuffixes: ["A", "B", "C", "D", "E", "F", "A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"],
+    denylistedShiftPrefixes: ["National Spanish", "ED Spanish"],
     shiftCallCenterDefsBySuffix: [],
     isAssigning: false,
     hasAssigned: false,
@@ -213,14 +218,21 @@ const app = new Vue({
       this.checkedCallCenterIds = [...this.userData.call_center_ids];
     },
     displayNameForCallCenterName: function(callCenterName) {
-      const shiftDisplayTimes = [ "(6am ET)", "(9am ET)", "(12pm ET)", "(3pm ET)", "(6pm ET)", "(9pm ET)"];
+      const shiftDisplayTimes = [ "(6am ET)", "(9am ET)", "(12pm ET)", "(3pm ET)", "(6pm ET)", "(9pm ET)", "(ED 5am ET)", "(ED 5am ET)", "(ED 5am ET)",  "(ED 11am ET)", "(ED 11am ET)", "(ED 11am ET)", "(ED 5pm ET)", "(ED 5pm ET)", "(ED 5pm ET)"];
+      const EDShiftDisplayTimes = ["(ED 5am ET)", "(ED 11am ET)", "(ED 5pm ET)"];
+      const EDPrefix = "ED ";
       
       // special case denylisted shift call centers that are at 6am because they don't have the A suffix
       if (this.denylistedShiftPrefixes.includes(callCenterName)) return callCenterName + " " + shiftDisplayTimes[0];
       
       for (let shiftIndex = 0; shiftIndex < this.shiftSuffixes.length; shiftIndex++) {
         if (callCenterName.endsWith(" " + this.shiftSuffixes[shiftIndex])) {
-          return callCenterName + " " + shiftDisplayTimes[shiftIndex];
+          if (callCenterName.startsWith(EDPrefix) && shiftIndex < 3) {
+            // Spanish call centers have the format ED Spanish <Letter> so they don't have an ED-specific suffix
+            return callCenterName + " " + EDShiftDisplayTimes[shiftIndex];
+          } else {
+            return callCenterName + " " + shiftDisplayTimes[shiftIndex];
+          }
         }
       }
       return callCenterName;
