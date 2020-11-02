@@ -53,25 +53,38 @@ async function xhr(url, headers, method = "GET", body = null) {
 
 const timeout = (ms) => new Promise((res) => setTimeout(res, ms));
 
-async function modifyMembership(userId, callCenterId, add, headers, delayMs) {
+async function modifyMembership(userId, callCenterId, operation, headers, delayMs, skillLevel=100) {
   await timeout(delayMs);
 
   const url = `https://dialpad.com/api/operator/${userId}?group_id=${callCenterId}`;
-  const body = add ? { add: true, skill_level: 100 } : { remove: true };
+  switch (operation) {
+    case 'add':
+      body = { add: true, skill_level: skillLevel };
+      break;
+    case 'remove':
+      body = { remove: true };
+      break;
+    case 'update':
+      body = { skill_level: skillLevel };
+      break;
+    default:
+      body = {};
+      break;
+  }
 
-  console.log(`Will ${add ? "add" : "remove"} ${callCenterId}`);
+  console.log(`Will ${operation} ${callCenterId}`);
 
   return xhr(url, headers, "PATCH", JSON.stringify(body));
 }
 
-async function modifyMemberships(userId, callCenterIds, add, headers) {
+async function modifyMemberships(userId, callCenterIds, operation, headers, skillLevel=100) {
   console.log(
-    `Will ${add ? "add" : "remove"} ${callCenterIds.size} call centers`
+    `Will ${operation} ${callCenterIds.size} call centers`
   );
 
-  const SPACING_MS = add ? 325 : 750; // rough empirical observations
+  const SPACING_MS = operation === 'add' ? 325 : 750; // rough empirical observations
   const promises = Array.from(callCenterIds).map((callCenterId, i) =>
-    modifyMembership(userId, callCenterId, add, headers, i * SPACING_MS)
+    modifyMembership(userId, callCenterId, operation, headers, i * SPACING_MS, skillLevel)
   );
 
   return Promise.all(promises);
@@ -83,15 +96,20 @@ async function refreshUserData(_app) {
     url,
     _app.headers
   );
+  console.log('Group details from refreshUserData', group_details)
   const call_center_ids = group_details.map((group) => group.id);
+  const skill_levels = group_details.map((group) => group?.skill_level ?? 100);
   const userData = {
     call_center_ids,
     display_name,
-    primary_email,
     isLoaded: true,
+    primary_email,
+    skill_level: Math.min(...skill_levels),
   };
 
   _app.userData = userData;
+  console.log(`Setting skillLevel to ${userData.skill_level}`)
+  _app.skillLevel = userData.skill_level;
 }
 
 async function refreshCallCenterDefs(_app) {
@@ -168,13 +186,15 @@ const app = new Vue({
     userData: {
       call_center_ids: [],
       display_name: null,
-      primary_email: null,
       isLoaded: false,
+      primary_email: null,
+      skill_level: 100, // current skill level in dialpad
     },
     headers: [],
     callCenterDefs: [],
     checkedCallCenterIds: [],
     shiftSuffixes: ["A", "B", "C", "D", "E", "F", "A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"],
+    skillLevel: 100, // desired skill level per UI
     denylistedShiftPrefixes: ["National Spanish", "ED Spanish"],
     shiftCallCenterDefsBySuffix: [],
     isAssigning: false,
@@ -187,8 +207,9 @@ const app = new Vue({
 
       try {
         await Promise.all([
-          modifyMemberships(this.userId, this.toAdd, true, this.headers),
-          modifyMemberships(this.userId, this.toRemove, false, this.headers),
+          modifyMemberships(this.userId, this.toAdd, 'add', this.headers, +this.skillLevel),
+          modifyMemberships(this.userId, this.toRemove, 'remove', this.headers, +this.skillLevel),
+          modifyMemberships(this.userId, this.toUpdateSkills, 'update', this.headers, +this.skillLevel),
         ]);
       } finally {
         await refreshUserData(this);
@@ -255,7 +276,11 @@ const app = new Vue({
       return difference(this.have, this.want);
     },
     isClean: function () {
-      return this.toAdd.size === 0 && this.toRemove.size === 0;
+      return this.toAdd.size === 0 && this.toRemove.size === 0 && this.toUpdateSkills.size == 0;
+    },
+    toUpdateSkills: function() {
+      // any call centers that are not changing
+      return this.skillLevel === this.userData.skill_level ? new Set() : new Set([...this.have].filter((x) => this.want.has(x)));
     },
     checkedShiftSuffixes: {
       get: function() {
