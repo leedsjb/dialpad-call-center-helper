@@ -88,6 +88,7 @@
           <span v-if="toRemove.size" class="remove delta"
             >Remove: {{ toRemove.size }}</span
           >
+          <span v-if="toUpdateSkills.size" class="update delta">Update Skill Level: {{ toUpdateSkills.size }}</span>
 
           <div class="assigning" v-if="isAssigning">
             <spinner v-bind:size="10" />

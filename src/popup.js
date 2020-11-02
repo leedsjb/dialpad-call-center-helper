@@ -98,18 +98,24 @@ async function refreshUserData(_app) {
   );
   console.log('Group details from refreshUserData', group_details)
   const call_center_ids = group_details.map((group) => group.id);
-  const skill_levels = group_details.map((group) => group?.skill_level ?? 100);
+  const skill_level_map = {};
+  minSkillLevel = 100;
+  group_details.map((group) => {
+    const skill_level = group?.skill_level ?? 100
+    skill_level_map[group.id] = skill_level;
+    minSkillLevel = Math.min(minSkillLevel, skill_level)
+  });
   const userData = {
     call_center_ids,
     display_name,
     isLoaded: true,
     primary_email,
-    skill_level: Math.min(...skill_levels),
+    skill_level_map,
   };
 
   _app.userData = userData;
-  console.log(`Setting skillLevel to ${userData.skill_level}`)
-  _app.skillLevel = userData.skill_level;
+  console.log(`Setting skillLevel to ${minSkillLevel}`)
+  _app.skillLevel = minSkillLevel;
 }
 
 async function refreshCallCenterDefs(_app) {
@@ -188,7 +194,7 @@ const app = new Vue({
       display_name: null,
       isLoaded: false,
       primary_email: null,
-      skill_level: 100, // current skill level in dialpad
+      skill_level_map: {}, // current skill level in dialpad
     },
     headers: [],
     callCenterDefs: [],
@@ -208,7 +214,7 @@ const app = new Vue({
       try {
         await Promise.all([
           modifyMemberships(this.userId, this.toAdd, 'add', this.headers, +this.skillLevel),
-          modifyMemberships(this.userId, this.toRemove, 'remove', this.headers, +this.skillLevel),
+          modifyMemberships(this.userId, this.toRemove, 'remove', this.headers),
           modifyMemberships(this.userId, this.toUpdateSkills, 'update', this.headers, +this.skillLevel),
         ]);
       } finally {
@@ -279,8 +285,8 @@ const app = new Vue({
       return this.toAdd.size === 0 && this.toRemove.size === 0 && this.toUpdateSkills.size == 0;
     },
     toUpdateSkills: function() {
-      // any call centers that are not changing
-      return this.skillLevel === this.userData.skill_level ? new Set() : new Set([...this.have].filter((x) => this.want.has(x)));
+      // any existing call centers whose skill level needs to be updated
+      return new Set([...this.have].filter((x) => this.want.has(x) && +this.userData.skill_level_map[x] !== +this.skillLevel));
     },
     checkedShiftSuffixes: {
       get: function() {
